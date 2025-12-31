@@ -1,0 +1,6 @@
+dependencies {
+    // Shared enums and constants, usually no dependencies
+}
+
+bootJar { enabled = false }
+jar { enabled = true }
