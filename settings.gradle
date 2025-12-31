@@ -1,0 +1,6 @@
+rootProject.name = 'transfer-practice'
+
+include 'core:core-api'
+include 'core:core-enum'
+include 'storage:db-core'
+include 'support:logging'
