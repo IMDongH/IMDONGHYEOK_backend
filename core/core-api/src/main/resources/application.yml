@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: core-api
+  profiles:
+    active: local
+  config:
+    import:
+      - application-logging.yml
+      - application-db-core.yml
+
+springdoc:
+  swagger-ui:
+    url: /openapi3.yaml
+    disable-swagger-default-url: true
