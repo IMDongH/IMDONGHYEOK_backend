@@ -13,7 +13,7 @@ erDiagram
     ACCOUNT {
         bigint id PK
         varchar account_number UK "Unique Account Number"
-        bigint user_id "User Identifier"
+
         decimal balance "Current Balance"
         varchar status "ACTIVE, DELETED"
         datetime created_at
