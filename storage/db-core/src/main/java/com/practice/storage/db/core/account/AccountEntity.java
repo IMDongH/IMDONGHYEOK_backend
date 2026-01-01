@@ -28,4 +28,15 @@ public class AccountEntity extends BaseEntity {
         this.accountNumber = accountNumber;
         this.balance = balance;
     }
+
+    public void deposit(BigDecimal amount) {
+        this.balance = this.balance.add(amount);
+    }
+
+    public void withdraw(BigDecimal amount) {
+        if (this.balance.compareTo(amount) < 0) {
+            throw new IllegalArgumentException("Insufficient balance");
+        }
+        this.balance = this.balance.subtract(amount);
+    }
 }
