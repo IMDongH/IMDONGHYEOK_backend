@@ -7,6 +7,8 @@ public enum ErrorCode {
     E1000,
     E1001,
     E1002,
+    E1003,
+    E1004,
     E2000,
     E2001,
     E2002,

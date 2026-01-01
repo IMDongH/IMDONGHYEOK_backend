@@ -1,7 +1,8 @@
 package com.practice.core.api.controller.account;
 
-
 import com.practice.core.api.controller.account.request.CreateAccountRequest;
+import com.practice.core.api.controller.account.request.DepositRequest;
+import com.practice.core.api.controller.account.request.WithdrawRequest;
 import com.practice.core.domain.account.AccountService;
 import com.practice.core.support.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -29,4 +30,13 @@ public class AccountController {
         accountService.deleteAccount(accountId);
         return ApiResponse.success();
     }
+
+    @PostMapping("/api/v1/accounts/{accountId}/deposit")
+    public ApiResponse<Long> deposit(
+            @PathVariable Long accountId,
+            @RequestBody DepositRequest request) {
+        Long result = accountService.deposit(accountId, request.getAmount(), request.getDescription());
+        return ApiResponse.success(result);
+    }
+
 }
