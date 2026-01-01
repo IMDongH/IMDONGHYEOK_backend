@@ -1,5 +1,9 @@
 package com.practice.core.domain.account;
 
+import com.practice.core.api.controller.account.response.TransactionResponse;
+import com.practice.core.domain.transaction.Transaction;
+import com.practice.core.support.OffsetLimit;
+import com.practice.core.support.Page;
 import com.practice.core.support.error.CoreException;
 import com.practice.core.support.error.ErrorType;
 import com.practice.storage.db.core.account.AccountEntity;
@@ -28,6 +32,7 @@ public class AccountService {
     private final DailyLimitUsageReader dailyLimitUsageReader;
     private final DailyLimitUsageWriter dailyLimitUsageWriter;
     private final com.practice.core.domain.limit.DailyLimitUsageService dailyLimitUsageService;
+    private final com.practice.core.domain.transaction.TransactionReader transactionReader;
 
     private static final BigDecimal DAILY_WITHDRAW_LIMIT = BigDecimal.valueOf(1000000);
 
@@ -123,7 +128,7 @@ public class AccountService {
 
         Long receiverId = accountReader.readIdByAccountNumber(receiverAccountNumber);
 
-        //  Deadlock 방지
+        // Deadlock 방지
         AccountEntity sender;
         AccountEntity receiver;
 
@@ -183,5 +188,13 @@ public class AccountService {
                 .description(transfer.getDescription())
                 .build();
         transactionWriter.save(receiverTransaction);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Transaction> readTransactions(Long accountId, TransactionType type,
+        OffsetLimit offsetLimit) {
+
+        return transactionReader.readByAccountIdAndType(
+            accountId, type,offsetLimit);
     }
 }

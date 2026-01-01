@@ -1,8 +1,10 @@
 package com.practice.core.support;
 
+import lombok.Getter;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+@Getter
 public class OffsetLimit {
     private final int offset;
     private final int limit;
@@ -12,15 +14,7 @@ public class OffsetLimit {
         this.limit = limit;
     }
 
-    public int getOffset() {
-        return offset;
-    }
-
-    public int getLimit() {
-        return limit;
-    }
-
     public Pageable toPageable() {
-        return PageRequest.of(offset / limit, limit);
+        return PageRequest.of(offset , limit);
     }
 }
