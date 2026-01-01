@@ -14,11 +14,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import org.hibernate.annotations.SQLRestriction;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "transaction")
+@SQLRestriction("status = 'ACTIVE'")
 public class TransactionEntity extends BaseEntity {
 
     @Column(nullable = false)

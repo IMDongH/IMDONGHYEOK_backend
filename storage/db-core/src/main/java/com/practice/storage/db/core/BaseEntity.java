@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
 
 @Getter
 @MappedSuperclass
-@SQLRestriction("status = 'ACTIVE'")
 public abstract class BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

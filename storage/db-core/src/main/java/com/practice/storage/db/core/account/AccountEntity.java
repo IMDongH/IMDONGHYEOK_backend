@@ -9,6 +9,7 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
 
@@ -16,6 +17,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "account")
+@SQLRestriction("status = 'ACTIVE'")
 public class AccountEntity extends BaseEntity {
 
     @Column(nullable = false, unique = true)

@@ -11,11 +11,13 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import org.hibernate.annotations.SQLRestriction;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "daily_limit_usage")
+@SQLRestriction("status = 'ACTIVE'")
 public class DailyLimitUsageEntity extends BaseEntity {
 
     @Column(nullable = false)
@@ -30,8 +32,6 @@ public class DailyLimitUsageEntity extends BaseEntity {
     @Column(nullable = false)
     private BigDecimal totalTransferAmount = BigDecimal.ZERO;
 
-    @Version
-    private Long version;
 
     public DailyLimitUsageEntity(Long accountId, LocalDate date) {
         this.accountId = accountId;
