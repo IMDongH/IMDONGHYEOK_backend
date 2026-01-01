@@ -1,5 +1,6 @@
 package com.practice.core.domain.account;
 
+import com.practice.core.enums.EntityStatus;
 import com.practice.core.support.error.CoreException;
 import com.practice.core.support.error.ErrorType;
 import com.practice.storage.db.core.account.AccountEntity;
@@ -18,7 +19,12 @@ public class AccountReader {
     }
 
     public AccountEntity read(Long accountId) {
-        return accountRepository.findByIdAndStatus(accountId, com.practice.core.enums.EntityStatus.ACTIVE)
+        return accountRepository.findById(accountId)
+                .orElseThrow(() -> new CoreException(ErrorType.ACCOUNT_NOT_FOUND));
+    }
+
+    public AccountEntity readWithLock(Long accountId) {
+        return accountRepository.findByIdWithPessimisticLock(accountId)
                 .orElseThrow(() -> new CoreException(ErrorType.ACCOUNT_NOT_FOUND));
     }
 }
