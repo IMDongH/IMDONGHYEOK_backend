@@ -22,14 +22,10 @@ public class AccountEntity extends BaseEntity {
     private String accountNumber;
 
     @Column(nullable = false)
-    private Long userId;
-
-    @Column(nullable = false)
     private BigDecimal balance;
 
-    public AccountEntity(String accountNumber, Long userId, BigDecimal balance) {
+    public AccountEntity(String accountNumber, BigDecimal balance) {
         this.accountNumber = accountNumber;
-        this.userId = userId;
         this.balance = balance;
     }
 }
