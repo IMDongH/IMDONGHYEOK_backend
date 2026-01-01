@@ -3,6 +3,7 @@ package com.practice.core.api.controller.account;
 import com.practice.core.api.controller.account.request.CreateAccountRequest;
 import com.practice.core.api.controller.account.request.DepositRequest;
 import com.practice.core.api.controller.account.request.WithdrawRequest;
+import com.practice.core.api.controller.account.request.TransferRequest;
 import com.practice.core.domain.account.AccountService;
 import com.practice.core.domain.account.AccountDeposit;
 import com.practice.core.domain.account.AccountWithdraw;
@@ -48,5 +49,13 @@ public class AccountController {
             @RequestBody WithdrawRequest request) {
         Long result = accountService.withdraw(request.toAccountWithdraw(accountId));
         return ApiResponse.success(result);
+    }
+
+    @PostMapping("/api/v1/accounts/{accountId}/transfer")
+    public ApiResponse<Object> transfer(
+            @PathVariable Long accountId,
+            @RequestBody TransferRequest request) {
+        accountService.transfer(request.toAccountTransfer(accountId));
+        return ApiResponse.success();
     }
 }

@@ -78,4 +78,34 @@ class AccountControllerTest extends RestDocsSupport {
                                 .description("계좌를 삭제합니다.")
                                 .build())));
     }
+
+    @Test
+    @DisplayName("계좌 이체 API")
+    void transfer() throws Exception {
+        // given
+        Long accountId = 1L;
+        com.practice.core.api.controller.account.request.TransferRequest request = new com.practice.core.api.controller.account.request.TransferRequest(
+                "RECEIVER-123", java.math.BigDecimal.valueOf(1000), "Transfer");
+
+        // when & then
+        mockMvc.perform(post("/api/v1/accounts/{accountId}/transfer", accountId)
+                .content(objectMapper.writeValueAsString(request))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andDo(document("transfer-account",
+                        resource(ResourceSnippetParameters.builder()
+                                .tag("Account")
+                                .summary("계좌 이체")
+                                .description("계좌 이체를 수행합니다.")
+                                .requestFields(
+                                        fieldWithPath("receiverAccountNumber").description("수취 계좌 번호"),
+                                        fieldWithPath("amount").description("이체 금액"),
+                                        fieldWithPath("description").description("이체 설명"))
+                                .responseFields(
+                                        fieldWithPath("result").description("응답 결과"),
+                                        fieldWithPath("data").description("데이터 (null)"),
+                                        fieldWithPath("error").description("에러 정보 (성공 시 null)"))
+                                .build())));
+    }
 }

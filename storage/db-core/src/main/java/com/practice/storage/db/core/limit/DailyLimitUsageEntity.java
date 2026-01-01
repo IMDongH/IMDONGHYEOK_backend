@@ -16,7 +16,10 @@ import org.hibernate.annotations.SQLRestriction;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "daily_limit_usage")
+@Table(name = "daily_limit_usage", uniqueConstraints = {
+        @jakarta.persistence.UniqueConstraint(name = "UK_daily_limit_usage_account_date", columnNames = { "account_id",
+                "date" })
+})
 @SQLRestriction("status = 'ACTIVE'")
 public class DailyLimitUsageEntity extends BaseEntity {
 
@@ -31,7 +34,6 @@ public class DailyLimitUsageEntity extends BaseEntity {
 
     @Column(nullable = false)
     private BigDecimal totalTransferAmount = BigDecimal.ZERO;
-
 
     public DailyLimitUsageEntity(Long accountId, LocalDate date) {
         this.accountId = accountId;

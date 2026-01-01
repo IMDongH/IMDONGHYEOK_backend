@@ -98,4 +98,56 @@ class AccountServiceConcurrencyTest {
         BigDecimal expectedBalance = initialBalance.subtract(BigDecimal.valueOf(threadCount).multiply(amount));
         assertThat(result.getBalance()).isEqualByComparingTo(expectedBalance);
     }
+
+    @Test
+    @DisplayName("동시에 100번 이체 요청 시 잔액이 정확해야 한다")
+    void transfer_concurrency() throws InterruptedException {
+        // given
+        String senderAccountNumber = "TRANSFER-SENDER-" + System.currentTimeMillis();
+        String receiverAccountNumber = "TRANSFER-RECEIVER-" + System.currentTimeMillis();
+        BigDecimal initialBalance = BigDecimal.valueOf(20000); // 100 * (100 + 1) = 10100 필요
+        AccountEntity sender = new AccountEntity(senderAccountNumber, initialBalance);
+        AccountEntity receiver = new AccountEntity(receiverAccountNumber, BigDecimal.ZERO);
+        accountRepository.save(sender);
+        accountRepository.save(receiver);
+        Long senderId = sender.getId();
+        Long receiverId = receiver.getId();
+
+        int threadCount = 100;
+        BigDecimal amount = BigDecimal.valueOf(100); // 100 KRW
+        // Fee = 1 KRW
+        // Total deduction per transfer = 101 KRW
+        ExecutorService executorService = Executors.newFixedThreadPool(32);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+
+        // when
+        for (int i = 0; i < threadCount; i++) {
+            executorService.submit(() -> {
+                try {
+                    AccountTransfer command = AccountTransfer.builder()
+                            .senderAccountId(senderId)
+                            .receiverAccountNumber(receiverAccountNumber)
+                            .amount(amount)
+                            .description("Transfer")
+                            .build();
+                    accountService.transfer(command);
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+
+        // then
+        AccountEntity senderResult = accountRepository.findById(senderId).orElseThrow();
+        AccountEntity receiverResult = accountRepository.findById(receiverId).orElseThrow();
+
+        BigDecimal expectedSenderBalance = initialBalance
+                .subtract(BigDecimal.valueOf(threadCount).multiply(BigDecimal.valueOf(101)));
+        BigDecimal expectedReceiverBalance = BigDecimal.valueOf(threadCount).multiply(amount);
+
+        assertThat(senderResult.getBalance()).isEqualByComparingTo(expectedSenderBalance);
+        assertThat(receiverResult.getBalance()).isEqualByComparingTo(expectedReceiverBalance);
+    }
 }

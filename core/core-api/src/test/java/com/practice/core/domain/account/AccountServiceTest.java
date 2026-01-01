@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -41,6 +42,9 @@ class AccountServiceTest {
 
     @Mock
     private com.practice.core.domain.limit.DailyLimitUsageWriter dailyLimitUsageWriter;
+
+    @Mock
+    private com.practice.core.domain.limit.DailyLimitUsageService dailyLimitUsageService;
 
     @Test
     @DisplayName("계좌 생성 성공")
@@ -122,6 +126,7 @@ class AccountServiceTest {
                 accountId, java.time.LocalDate.now());
 
         given(accountReader.readWithLock(accountId)).willReturn(account);
+        willDoNothing().given(dailyLimitUsageService).ensureDailyLimitUsageExists(any(), any());
         given(dailyLimitUsageReader.findByAccountIdAndDateWithLock(any(), any()))
                 .willReturn(java.util.Optional.of(dailyLimitUsage));
 
@@ -151,6 +156,7 @@ class AccountServiceTest {
                 accountId, java.time.LocalDate.now());
 
         given(accountReader.readWithLock(accountId)).willReturn(account);
+        willDoNothing().given(dailyLimitUsageService).ensureDailyLimitUsageExists(any(), any());
         given(dailyLimitUsageReader.findByAccountIdAndDateWithLock(any(), any()))
                 .willReturn(java.util.Optional.of(dailyLimitUsage));
 
@@ -177,6 +183,7 @@ class AccountServiceTest {
         dailyLimitUsage.addWithdrawAmount(BigDecimal.valueOf(1000000)); // 이미 한도 도달
 
         given(accountReader.readWithLock(accountId)).willReturn(account);
+        willDoNothing().given(dailyLimitUsageService).ensureDailyLimitUsageExists(any(), any());
         given(dailyLimitUsageReader.findByAccountIdAndDateWithLock(any(), any()))
                 .willReturn(java.util.Optional.of(dailyLimitUsage));
 
@@ -189,5 +196,122 @@ class AccountServiceTest {
         assertThatThrownBy(() -> accountService.withdraw(command))
                 .isInstanceOf(CoreException.class)
                 .hasMessage(ErrorType.EXCEED_DAILY_WITHDRAW_LIMIT.getMessage());
+    }
+
+    @Test
+    @DisplayName("계좌 이체 성공")
+    void transfer_success() {
+        // given
+        Long senderId = 1L;
+        Long receiverId = 2L;
+        String receiverAccountNumber = "RECEIVER-123";
+        BigDecimal amount = BigDecimal.valueOf(10000); // 10,000 KRW
+        BigDecimal fee = BigDecimal.valueOf(100); // 1% = 100 KRW
+        BigDecimal totalAmount = amount.add(fee); // 10,100 KRW
+
+        AccountEntity sender = new AccountEntity("SENDER", BigDecimal.valueOf(20000));
+        sender.setId(senderId);
+        AccountEntity receiver = new AccountEntity(receiverAccountNumber, BigDecimal.ZERO);
+        receiver.setId(receiverId);
+
+        com.practice.storage.db.core.limit.DailyLimitUsageEntity dailyLimitUsage = new com.practice.storage.db.core.limit.DailyLimitUsageEntity(
+                senderId, java.time.LocalDate.now());
+
+        given(accountReader.readIdByAccountNumber(receiverAccountNumber)).willReturn(receiverId);
+        given(accountReader.readWithLock(senderId)).willReturn(sender);
+        given(accountReader.readWithLock(receiverId)).willReturn(receiver);
+        willDoNothing().given(dailyLimitUsageService).ensureDailyLimitUsageExists(any(), any());
+        given(dailyLimitUsageReader.findByAccountIdAndDateWithLock(any(), any()))
+                .willReturn(java.util.Optional.of(dailyLimitUsage));
+
+        // when
+        AccountTransfer transfer = AccountTransfer.builder()
+                .senderAccountId(senderId)
+                .receiverAccountNumber(receiverAccountNumber)
+                .amount(amount)
+                .description("Transfer")
+                .build();
+        accountService.transfer(transfer);
+
+        // then
+        assertThat(sender.getBalance()).isEqualByComparingTo(BigDecimal.valueOf(9900)); // 20000 - 10100
+        assertThat(receiver.getBalance()).isEqualByComparingTo(BigDecimal.valueOf(10000)); // 0 + 10000
+        assertThat(dailyLimitUsage.getTotalTransferAmount()).isEqualByComparingTo(amount);
+        verify(transactionWriter, times(2)).save(any());
+    }
+
+    @Test
+    @DisplayName("계좌 이체 실패 - 잔액 부족 (수수료 포함)")
+    void transfer_insufficient_balance() {
+        // given
+        Long senderId = 1L;
+        Long receiverId = 2L;
+        String receiverAccountNumber = "RECEIVER-123";
+        BigDecimal amount = BigDecimal.valueOf(10000);
+        BigDecimal fee = BigDecimal.valueOf(100);
+
+        AccountEntity sender = new AccountEntity("SENDER", BigDecimal.valueOf(10000)); // 잔액 10,000 (수수료 부족)
+        sender.setId(senderId);
+        AccountEntity receiver = new AccountEntity(receiverAccountNumber, BigDecimal.ZERO);
+        receiver.setId(receiverId);
+
+        com.practice.storage.db.core.limit.DailyLimitUsageEntity dailyLimitUsage = new com.practice.storage.db.core.limit.DailyLimitUsageEntity(
+                senderId, java.time.LocalDate.now());
+
+        given(accountReader.readIdByAccountNumber(receiverAccountNumber)).willReturn(receiverId);
+        given(accountReader.readWithLock(senderId)).willReturn(sender);
+        given(accountReader.readWithLock(receiverId)).willReturn(receiver);
+        willDoNothing().given(dailyLimitUsageService).ensureDailyLimitUsageExists(any(), any());
+        given(dailyLimitUsageReader.findByAccountIdAndDateWithLock(any(), any()))
+                .willReturn(java.util.Optional.of(dailyLimitUsage));
+
+        // when & then
+        AccountTransfer transfer = AccountTransfer.builder()
+                .senderAccountId(senderId)
+                .receiverAccountNumber(receiverAccountNumber)
+                .amount(amount)
+                .description("Transfer")
+                .build();
+
+        assertThatThrownBy(() -> accountService.transfer(transfer))
+                .isInstanceOf(CoreException.class)
+                .hasMessage(ErrorType.INSUFFICIENT_BALANCE.getMessage());
+    }
+
+    @Test
+    @DisplayName("계좌 이체 실패 - 일일 이체 한도 초과")
+    void transfer_exceed_daily_limit() {
+        // given
+        Long senderId = 1L;
+        Long receiverId = 2L;
+        String receiverAccountNumber = "RECEIVER-123";
+        BigDecimal amount = BigDecimal.valueOf(3_000_001); // 한도 초과
+
+        AccountEntity sender = new AccountEntity("SENDER", BigDecimal.valueOf(5000000));
+        sender.setId(senderId);
+        AccountEntity receiver = new AccountEntity(receiverAccountNumber, BigDecimal.ZERO);
+        receiver.setId(receiverId);
+
+        com.practice.storage.db.core.limit.DailyLimitUsageEntity dailyLimitUsage = new com.practice.storage.db.core.limit.DailyLimitUsageEntity(
+                senderId, java.time.LocalDate.now());
+
+        given(accountReader.readIdByAccountNumber(receiverAccountNumber)).willReturn(receiverId);
+        given(accountReader.readWithLock(senderId)).willReturn(sender);
+        given(accountReader.readWithLock(receiverId)).willReturn(receiver);
+        willDoNothing().given(dailyLimitUsageService).ensureDailyLimitUsageExists(any(), any());
+        given(dailyLimitUsageReader.findByAccountIdAndDateWithLock(any(), any()))
+                .willReturn(java.util.Optional.of(dailyLimitUsage));
+
+        // when & then
+        AccountTransfer transfer = AccountTransfer.builder()
+                .senderAccountId(senderId)
+                .receiverAccountNumber(receiverAccountNumber)
+                .amount(amount)
+                .description("Transfer")
+                .build();
+
+        assertThatThrownBy(() -> accountService.transfer(transfer))
+                .isInstanceOf(CoreException.class)
+                .hasMessage(ErrorType.EXCEED_DAILY_TRANSFER_LIMIT.getMessage());
     }
 }

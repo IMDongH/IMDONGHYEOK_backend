@@ -10,6 +10,7 @@ import com.practice.core.enums.TransactionDirection;
 import com.practice.core.enums.TransactionType;
 import com.practice.storage.db.core.limit.DailyLimitUsageEntity;
 import com.practice.storage.db.core.transaction.TransactionEntity;
+import java.math.RoundingMode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +27,9 @@ public class AccountService {
     private final TransactionWriter transactionWriter;
     private final DailyLimitUsageReader dailyLimitUsageReader;
     private final DailyLimitUsageWriter dailyLimitUsageWriter;
+    private final com.practice.core.domain.limit.DailyLimitUsageService dailyLimitUsageService;
 
-    private static final BigDecimal DAILY_WITHDRAW_LIMIT = BigDecimal.valueOf(1_000_000);
+    private static final BigDecimal DAILY_WITHDRAW_LIMIT = BigDecimal.valueOf(1000000);
 
     @Transactional
     public Long createAccount(NewAccount newAccount) {
@@ -76,10 +78,12 @@ public class AccountService {
     @Transactional
     public Long withdraw(AccountWithdraw withdraw) {
         AccountEntity account = accountReader.readWithLock(withdraw.getAccountId());
+        // Check Daily Limit
         LocalDate today = LocalDate.now();
+        dailyLimitUsageService.ensureDailyLimitUsageExists(withdraw.getAccountId(), today);
         DailyLimitUsageEntity dailyLimitUsage = dailyLimitUsageReader
                 .findByAccountIdAndDateWithLock(withdraw.getAccountId(), today)
-                .orElseGet(() -> new DailyLimitUsageEntity(withdraw.getAccountId(), today));
+                .orElseThrow();
 
         if (dailyLimitUsage.getTotalWithdrawAmount().add(withdraw.getAmount()).compareTo(DAILY_WITHDRAW_LIMIT) > 0) {
             throw new CoreException(ErrorType.EXCEED_DAILY_WITHDRAW_LIMIT);
@@ -107,5 +111,77 @@ public class AccountService {
         transactionWriter.save(transaction);
 
         return account.getId();
+    }
+
+    private static final BigDecimal TRANSFER_FEE_RATE = BigDecimal.valueOf(0.01);
+    private static final BigDecimal DAILY_TRANSFER_LIMIT = BigDecimal.valueOf(3_000_000);
+
+    @Transactional
+    public void transfer(AccountTransfer transfer) {
+        Long senderId = transfer.getSenderAccountId();
+        String receiverAccountNumber = transfer.getReceiverAccountNumber();
+
+        Long receiverId = accountReader.readIdByAccountNumber(receiverAccountNumber);
+
+        //  Deadlock 방지
+        AccountEntity sender;
+        AccountEntity receiver;
+
+        if (senderId < receiverId) {
+            sender = accountReader.readWithLock(senderId);
+            receiver = accountReader.readWithLock(receiverId);
+        } else {
+            receiver = accountReader.readWithLock(receiverId);
+            sender = accountReader.readWithLock(senderId);
+        }
+
+        BigDecimal fee = transfer.getAmount().multiply(TRANSFER_FEE_RATE).setScale(0, RoundingMode.FLOOR);
+        BigDecimal totalAmount = transfer.getAmount().add(fee);
+
+        // GAP LOCK 방지
+        LocalDate today = LocalDate.now();
+        dailyLimitUsageService.ensureDailyLimitUsageExists(senderId, today);
+        DailyLimitUsageEntity senderDailyLimitUsage = dailyLimitUsageReader
+                .findByAccountIdAndDateWithLock(senderId, today)
+                .orElseThrow();
+
+        if (senderDailyLimitUsage.getTotalTransferAmount().add(transfer.getAmount())
+                .compareTo(DAILY_TRANSFER_LIMIT) > 0) {
+            throw new CoreException(ErrorType.EXCEED_DAILY_TRANSFER_LIMIT);
+        }
+
+        if (sender.getBalance().compareTo(totalAmount) < 0) {
+            throw new CoreException(ErrorType.INSUFFICIENT_BALANCE);
+        }
+
+        sender.withdraw(totalAmount);
+        receiver.deposit(transfer.getAmount());
+
+        senderDailyLimitUsage.addTransferAmount(transfer.getAmount());
+        dailyLimitUsageWriter.save(senderDailyLimitUsage);
+
+        TransactionEntity senderTransaction = TransactionEntity.builder()
+                .accountId(senderId)
+                .counterpartyAccountId(receiverId)
+                .type(TransactionType.TRANSFER)
+                .direction(TransactionDirection.OUT)
+                .amount(transfer.getAmount())
+                .fee(fee)
+                .balanceSnapshot(sender.getBalance())
+                .description(transfer.getDescription())
+                .build();
+        transactionWriter.save(senderTransaction);
+
+        TransactionEntity receiverTransaction = TransactionEntity.builder()
+                .accountId(receiverId)
+                .counterpartyAccountId(senderId)
+                .type(TransactionType.TRANSFER)
+                .direction(TransactionDirection.IN)
+                .amount(transfer.getAmount())
+                .fee(BigDecimal.ZERO)
+                .balanceSnapshot(receiver.getBalance())
+                .description(transfer.getDescription())
+                .build();
+        transactionWriter.save(receiverTransaction);
     }
 }

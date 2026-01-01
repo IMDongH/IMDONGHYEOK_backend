@@ -13,7 +13,8 @@ public enum ErrorType {
     ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, ErrorCode.E1001, "계좌를 찾을 수 없습니다.", LogLevel.INFO),
     DUPLICATE_ACCOUNT_NUMBER(HttpStatus.BAD_REQUEST, ErrorCode.E1002, "이미 존재하는 계좌번호입니다.", LogLevel.INFO),
     INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, ErrorCode.E1003, "잔액이 부족합니다.", LogLevel.INFO),
-    EXCEED_DAILY_WITHDRAW_LIMIT(HttpStatus.CONFLICT, ErrorCode.E1004, "일일 출금 한도를 초과했습니다.", LogLevel.INFO);
+    EXCEED_DAILY_WITHDRAW_LIMIT(HttpStatus.CONFLICT, ErrorCode.E1004, "일일 출금 한도를 초과했습니다.", LogLevel.INFO),
+    EXCEED_DAILY_TRANSFER_LIMIT(HttpStatus.CONFLICT, ErrorCode.E1005, "일일 이체 한도를 초과했습니다.", LogLevel.INFO);
 
     private final HttpStatus status;
     private final ErrorCode code;

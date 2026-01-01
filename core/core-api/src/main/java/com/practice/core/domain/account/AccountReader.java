@@ -18,6 +18,16 @@ public class AccountReader {
         return accountRepository.existsByAccountNumber(accountNumber);
     }
 
+    public AccountEntity readByAccountNumber(String accountNumber) {
+        return accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new CoreException(ErrorType.ACCOUNT_NOT_FOUND));
+    }
+
+    public Long readIdByAccountNumber(String accountNumber) {
+        return accountRepository.findIdByAccountNumber(accountNumber)
+                .orElseThrow(() -> new CoreException(ErrorType.ACCOUNT_NOT_FOUND));
+    }
+
     public AccountEntity read(Long accountId) {
         return accountRepository.findById(accountId)
                 .orElseThrow(() -> new CoreException(ErrorType.ACCOUNT_NOT_FOUND));
