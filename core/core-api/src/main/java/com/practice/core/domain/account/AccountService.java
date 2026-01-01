@@ -73,5 +73,38 @@ public class AccountService {
         return account.getId();
     }
 
+    @Transactional
+    public Long withdraw(Long accountId, BigDecimal amount, String description) {
+        AccountEntity account = accountReader.readWithLock(accountId);
+        LocalDate today = LocalDate.now();
+        DailyLimitUsageEntity dailyLimitUsage = dailyLimitUsageReader.findByAccountIdAndDateWithLock(accountId, today)
+                .orElseGet(() -> new DailyLimitUsageEntity(accountId, today));
 
+        if (dailyLimitUsage.getTotalWithdrawAmount().add(amount).compareTo(DAILY_WITHDRAW_LIMIT) > 0) {
+            throw new CoreException(ErrorType.EXCEED_DAILY_WITHDRAW_LIMIT);
+        }
+
+        if (account.getBalance().compareTo(amount) < 0) {
+            throw new CoreException(ErrorType.INSUFFICIENT_BALANCE);
+        }
+
+        account.withdraw(amount);
+        dailyLimitUsage.addWithdrawAmount(amount);
+
+        dailyLimitUsageWriter.save(dailyLimitUsage);
+
+        TransactionEntity transaction = TransactionEntity.builder()
+                .accountId(accountId)
+                .type(TransactionType.WITHDRAW)
+                .direction(TransactionDirection.OUT)
+                .amount(amount)
+                .fee(BigDecimal.ZERO)
+                .balanceSnapshot(account.getBalance())
+                .description(description)
+                .build();
+
+        transactionWriter.save(transaction);
+
+        return account.getId();
+    }
 }

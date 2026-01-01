@@ -39,4 +39,11 @@ public class AccountController {
         return ApiResponse.success(result);
     }
 
+    @PostMapping("/api/v1/accounts/{accountId}/withdraw")
+    public ApiResponse<Long> withdraw(
+            @PathVariable Long accountId,
+            @RequestBody WithdrawRequest request) {
+        Long result = accountService.withdraw(accountId, request.getAmount(), request.getDescription());
+        return ApiResponse.success(result);
+    }
 }
