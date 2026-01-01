@@ -307,7 +307,8 @@ class AccountControllerTest extends RestDocsSupport {
                                                                                 com.epages.restdocs.apispec.ResourceDocumentation
                                                                                                 .parameterWithName(
                                                                                                                 "type")
-                                                                                                .description("거래 유형 (DEPOSIT, WITHDRAW, TRANSFER)"),
+                                                                                                .description("거래 유형 (DEPOSIT, WITHDRAW, TRANSFER)")
+                                                                                                .optional(),
                                                                                 com.epages.restdocs.apispec.ResourceDocumentation
                                                                                                 .parameterWithName(
                                                                                                                 "offset")
