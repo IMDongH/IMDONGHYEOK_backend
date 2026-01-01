@@ -29,14 +29,13 @@ public class AccountController {
     }
 
     @DeleteMapping("/api/v1/accounts/{accountId}")
-    public ApiResponse<Object> deleteAccount(@PathVariable Long accountId) {
+    public ApiResponse<Object> deleteAccount( @PathVariable Long accountId) {
         accountService.deleteAccount(accountId);
         return ApiResponse.success();
     }
 
     @PostMapping("/api/v1/accounts/{accountId}/deposit")
-    public ApiResponse<Long> deposit(
-            @PathVariable Long accountId,
+    public ApiResponse<Long> deposit(@PathVariable Long accountId,
             @RequestBody DepositRequest request) {
 
         Long result = accountService.deposit(request.toAccountDeposit(accountId));
@@ -44,16 +43,14 @@ public class AccountController {
     }
 
     @PostMapping("/api/v1/accounts/{accountId}/withdraw")
-    public ApiResponse<Long> withdraw(
-            @PathVariable Long accountId,
+    public ApiResponse<Long> withdraw( @PathVariable Long accountId,
             @RequestBody WithdrawRequest request) {
         Long result = accountService.withdraw(request.toAccountWithdraw(accountId));
         return ApiResponse.success(result);
     }
 
     @PostMapping("/api/v1/accounts/{accountId}/transfer")
-    public ApiResponse<Object> transfer(
-            @PathVariable Long accountId,
+    public ApiResponse<Object> transfer(@PathVariable Long accountId,
             @RequestBody TransferRequest request) {
         accountService.transfer(request.toAccountTransfer(accountId));
         return ApiResponse.success();

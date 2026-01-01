@@ -116,6 +116,29 @@ class AccountServiceTest {
     }
 
     @Test
+    @DisplayName("입금 성공")
+    void deposit_success() {
+        // given
+        Long accountId = 1L;
+        BigDecimal amount = BigDecimal.valueOf(10000);
+        AccountEntity account = new AccountEntity("123", BigDecimal.valueOf(5000));
+
+        given(accountReader.readWithLock(accountId)).willReturn(account);
+
+        // when
+        AccountDeposit command = AccountDeposit.builder()
+                .accountId(accountId)
+                .amount(amount)
+                .description("Deposit")
+                .build();
+        accountService.deposit(command);
+
+        // then
+        assertThat(account.getBalance()).isEqualByComparingTo(BigDecimal.valueOf(15000));
+        verify(transactionWriter, times(1)).save(any());
+    }
+
+    @Test
     @DisplayName("출금 성공")
     void withdraw_success() {
         // given
@@ -313,5 +336,29 @@ class AccountServiceTest {
         assertThatThrownBy(() -> accountService.transfer(transfer))
                 .isInstanceOf(CoreException.class)
                 .hasMessage(ErrorType.EXCEED_DAILY_TRANSFER_LIMIT.getMessage());
+    }
+
+    @Test
+    @DisplayName("계좌 이체 실패 - 수신자 계좌번호 존재하지 않음")
+    void transfer_receiver_not_found() {
+        // given
+        Long senderId = 1L;
+        String receiverAccountNumber = "INVALID-ACCOUNT";
+        BigDecimal amount = BigDecimal.valueOf(10000);
+
+        given(accountReader.readIdByAccountNumber(receiverAccountNumber))
+                .willThrow(new CoreException(ErrorType.ACCOUNT_NOT_FOUND));
+
+        // when & then
+        AccountTransfer transfer = AccountTransfer.builder()
+                .senderAccountId(senderId)
+                .receiverAccountNumber(receiverAccountNumber)
+                .amount(amount)
+                .description("Transfer")
+                .build();
+
+        assertThatThrownBy(() -> accountService.transfer(transfer))
+                .isInstanceOf(CoreException.class)
+                .hasMessage(ErrorType.ACCOUNT_NOT_FOUND.getMessage());
     }
 }

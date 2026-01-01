@@ -5,6 +5,7 @@ import com.practice.core.support.error.CoreException;
 import com.practice.core.support.error.ErrorType;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
 @Getter
 @NoArgsConstructor
@@ -17,7 +18,7 @@ public class CreateAccountRequest {
 
 
     public NewAccount toNewAccount() {
-        if(accountNumber == null) {
+        if(StringUtils.isBlank(accountNumber)) {
             throw new CoreException(ErrorType.INVALID_REQUEST);
         }
 

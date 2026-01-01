@@ -80,6 +80,64 @@ class AccountControllerTest extends RestDocsSupport {
     }
 
     @Test
+    @DisplayName("입금 API")
+    void deposit() throws Exception {
+        // given
+        Long accountId = 1L;
+        com.practice.core.api.controller.account.request.DepositRequest request = new com.practice.core.api.controller.account.request.DepositRequest(
+                java.math.BigDecimal.valueOf(10000), "Deposit");
+
+        // when & then
+        mockMvc.perform(post("/api/v1/accounts/{accountId}/deposit", accountId)
+                .content(objectMapper.writeValueAsString(request))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andDo(document("deposit-account",
+                        resource(ResourceSnippetParameters.builder()
+                                .tag("Account")
+                                .summary("계좌 입금")
+                                .description("계좌에 입금합니다.")
+                                .requestFields(
+                                        fieldWithPath("amount").description("입금 금액"),
+                                        fieldWithPath("description").description("입금 설명"))
+                                .responseFields(
+                                        fieldWithPath("result").description("응답 결과"),
+                                        fieldWithPath("data").description("계좌 ID"),
+                                        fieldWithPath("error").description("에러 정보 (성공 시 null)"))
+                                .build())));
+    }
+
+    @Test
+    @DisplayName("출금 API")
+    void withdraw() throws Exception {
+        // given
+        Long accountId = 1L;
+        com.practice.core.api.controller.account.request.WithdrawRequest request = new com.practice.core.api.controller.account.request.WithdrawRequest(
+                java.math.BigDecimal.valueOf(5000), "Withdraw");
+
+        // when & then
+        mockMvc.perform(post("/api/v1/accounts/{accountId}/withdraw", accountId)
+                .content(objectMapper.writeValueAsString(request))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andDo(document("withdraw-account",
+                        resource(ResourceSnippetParameters.builder()
+                                .tag("Account")
+                                .summary("계좌 출금")
+                                .description("계좌에서 출금합니다.")
+                                .requestFields(
+                                        fieldWithPath("amount").description("출금 금액"),
+                                        fieldWithPath("description").description("출금 설명"))
+                                .responseFields(
+                                        fieldWithPath("result").description("응답 결과"),
+                                        fieldWithPath("data").description("계좌 ID"),
+                                        fieldWithPath("error").description("에러 정보 (성공 시 null)"))
+                                .build())));
+    }
+
+    @Test
     @DisplayName("계좌 이체 API")
     void transfer() throws Exception {
         // given
