@@ -1,7 +1,7 @@
 FROM gradle:8-jdk21 AS builder
 WORKDIR /app
 COPY . .
-RUN ./gradlew :core:core-api:bootJar -x test --no-daemon
+RUN ./gradlew :core:core-api:bootJar --no-daemon
 
 FROM eclipse-temurin:21-jdk-jammy
 WORKDIR /app
