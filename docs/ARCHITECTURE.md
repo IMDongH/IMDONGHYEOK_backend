@@ -26,7 +26,6 @@ graph TD
     API --> DB
     API --> ENUM
     API --> LOG
-    API --> MON
 
     DB --> ENUM
     DB --> LOG
