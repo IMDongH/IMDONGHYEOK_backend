@@ -4,6 +4,7 @@ import com.practice.core.api.controller.account.request.CreateAccountRequest;
 import com.practice.core.domain.account.AccountService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.practice.core.domain.account.NewAccount;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +14,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -38,7 +39,8 @@ class AccountControllerIntegrationTest {
     void createAccount() throws Exception {
         // given
         CreateAccountRequest request = new CreateAccountRequest("123-456-789");
-        given(accountService.createAccount(anyString())).willReturn(1L);
+                
+        given(accountService.createAccount(any(NewAccount.class))).willReturn(1L);
 
         // when & then
         mockMvc.perform(post("/api/v1/accounts")

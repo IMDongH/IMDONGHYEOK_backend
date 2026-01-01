@@ -1,15 +1,14 @@
 package com.practice.core.api.controller.account;
 
-
 import static org.mockito.ArgumentMatchers.any;
 import com.practice.core.api.controller.account.request.CreateAccountRequest;
 import com.practice.core.domain.account.AccountService;
+import com.practice.core.domain.account.NewAccount;
 import com.practice.core.support.RestDocsSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
@@ -38,7 +37,7 @@ class AccountControllerTest extends RestDocsSupport {
     void createAccount() throws Exception {
         // given
         CreateAccountRequest request = new CreateAccountRequest("123-456-789");
-        given(accountService.createAccount(anyString()))
+        given(accountService.createAccount(any(NewAccount.class)))
                 .willReturn(1L);
 
         // when & then

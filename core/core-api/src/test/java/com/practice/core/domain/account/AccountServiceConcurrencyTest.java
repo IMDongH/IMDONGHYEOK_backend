@@ -41,7 +41,12 @@ class AccountServiceConcurrencyTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    accountService.deposit(accountId, amount, "Deposit");
+                    AccountDeposit command = AccountDeposit.builder()
+                            .accountId(accountId)
+                            .amount(amount)
+                            .description("Deposit")
+                            .build();
+                    accountService.deposit(command);
                 } finally {
                     latch.countDown();
                 }
@@ -74,7 +79,12 @@ class AccountServiceConcurrencyTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    accountService.withdraw(accountId, amount, "Withdraw");
+                    AccountWithdraw command = AccountWithdraw.builder()
+                            .accountId(accountId)
+                            .amount(amount)
+                            .description("Withdraw")
+                            .build();
+                    accountService.withdraw(command);
                 } finally {
                     latch.countDown();
                 }

@@ -4,6 +4,8 @@ import com.practice.core.api.controller.account.request.CreateAccountRequest;
 import com.practice.core.api.controller.account.request.DepositRequest;
 import com.practice.core.api.controller.account.request.WithdrawRequest;
 import com.practice.core.domain.account.AccountService;
+import com.practice.core.domain.account.AccountDeposit;
+import com.practice.core.domain.account.AccountWithdraw;
 import com.practice.core.support.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,7 +23,7 @@ public class AccountController {
     @PostMapping("/api/v1/accounts")
     public ApiResponse<Long> createAccount(
             @RequestBody CreateAccountRequest request) {
-        Long accountId = accountService.createAccount(request.getAccountNumber());
+        Long accountId = accountService.createAccount(request.toNewAccount());
         return ApiResponse.success(accountId);
     }
 
@@ -35,7 +37,8 @@ public class AccountController {
     public ApiResponse<Long> deposit(
             @PathVariable Long accountId,
             @RequestBody DepositRequest request) {
-        Long result = accountService.deposit(accountId, request.getAmount(), request.getDescription());
+
+        Long result = accountService.deposit(request.toAccountDeposit(accountId));
         return ApiResponse.success(result);
     }
 
@@ -43,7 +46,7 @@ public class AccountController {
     public ApiResponse<Long> withdraw(
             @PathVariable Long accountId,
             @RequestBody WithdrawRequest request) {
-        Long result = accountService.withdraw(accountId, request.getAmount(), request.getDescription());
+        Long result = accountService.withdraw(request.toAccountWithdraw(accountId));
         return ApiResponse.success(result);
     }
 }

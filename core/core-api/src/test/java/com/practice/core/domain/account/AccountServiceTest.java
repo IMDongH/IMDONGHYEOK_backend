@@ -53,7 +53,10 @@ class AccountServiceTest {
         given(accountWriter.save(any(AccountEntity.class))).willReturn(savedAccount);
 
         // when
-        Long accountId = accountService.createAccount(accountNumber);
+        NewAccount command = NewAccount.builder()
+                .accountNumber(accountNumber)
+                .build();
+        Long accountId = accountService.createAccount(command);
 
         // then
         assertThat(accountId).isEqualTo(savedAccount.getId());
@@ -69,7 +72,10 @@ class AccountServiceTest {
         given(accountReader.existsByAccountNumber(accountNumber)).willReturn(true);
 
         // when & then
-        assertThatThrownBy(() -> accountService.createAccount(accountNumber))
+        NewAccount command = NewAccount.builder()
+                .accountNumber(accountNumber)
+                .build();
+        assertThatThrownBy(() -> accountService.createAccount(command))
                 .isInstanceOf(CoreException.class)
                 .hasMessage(ErrorType.DUPLICATE_ACCOUNT_NUMBER.getMessage());
     }
@@ -120,7 +126,12 @@ class AccountServiceTest {
                 .willReturn(java.util.Optional.of(dailyLimitUsage));
 
         // when
-        accountService.withdraw(accountId, amount, "test");
+        AccountWithdraw command = AccountWithdraw.builder()
+                .accountId(accountId)
+                .amount(amount)
+                .description("test")
+                .build();
+        accountService.withdraw(command);
 
         // then
         assertThat(account.getBalance()).isEqualByComparingTo(BigDecimal.valueOf(1000));
@@ -144,7 +155,12 @@ class AccountServiceTest {
                 .willReturn(java.util.Optional.of(dailyLimitUsage));
 
         // when & then
-        assertThatThrownBy(() -> accountService.withdraw(accountId, amount, "test"))
+        AccountWithdraw command = AccountWithdraw.builder()
+                .accountId(accountId)
+                .amount(amount)
+                .description("test")
+                .build();
+        assertThatThrownBy(() -> accountService.withdraw(command))
                 .isInstanceOf(CoreException.class)
                 .hasMessage(ErrorType.INSUFFICIENT_BALANCE.getMessage());
     }
@@ -165,7 +181,12 @@ class AccountServiceTest {
                 .willReturn(java.util.Optional.of(dailyLimitUsage));
 
         // when & then
-        assertThatThrownBy(() -> accountService.withdraw(accountId, amount, "test"))
+        AccountWithdraw command = AccountWithdraw.builder()
+                .accountId(accountId)
+                .amount(amount)
+                .description("test")
+                .build();
+        assertThatThrownBy(() -> accountService.withdraw(command))
                 .isInstanceOf(CoreException.class)
                 .hasMessage(ErrorType.EXCEED_DAILY_WITHDRAW_LIMIT.getMessage());
     }

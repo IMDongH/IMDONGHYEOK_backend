@@ -30,13 +30,13 @@ public class AccountService {
     private static final BigDecimal DAILY_WITHDRAW_LIMIT = BigDecimal.valueOf(1_000_000);
 
     @Transactional
-    public Long createAccount(String accountNumber) {
-        if (accountReader.existsByAccountNumber(accountNumber)) {
+    public Long createAccount(NewAccount newAccount) {
+        if (accountReader.existsByAccountNumber(newAccount.getAccountNumber())) {
             throw new CoreException(ErrorType.DUPLICATE_ACCOUNT_NUMBER); // 중복된 계좌번호 등록 불가
         }
 
         AccountEntity accountEntity = new AccountEntity(
-                accountNumber,
+                newAccount.getAccountNumber(),
                 BigDecimal.ZERO);
         return accountWriter.save(accountEntity).getId();
     }
@@ -53,19 +53,19 @@ public class AccountService {
     }
 
     @Transactional
-    public Long deposit(Long accountId, BigDecimal amount, String description) {
-        AccountEntity account = accountReader.readWithLock(accountId);
-        account.deposit(amount);
+    public Long deposit(AccountDeposit deposit) {
+        AccountEntity account = accountReader.readWithLock(deposit.getAccountId());
+        account.deposit(deposit.getAmount());
 
         TransactionEntity transaction = TransactionEntity
                 .builder()
-                .accountId(accountId)
+                .accountId(deposit.getAccountId())
                 .type(TransactionType.DEPOSIT)
                 .direction(TransactionDirection.IN)
-                .amount(amount)
+                .amount(deposit.getAmount())
                 .fee(BigDecimal.ZERO)
                 .balanceSnapshot(account.getBalance())
-                .description(description)
+                .description(deposit.getDescription())
                 .build();
 
         transactionWriter.save(transaction);
@@ -74,33 +74,34 @@ public class AccountService {
     }
 
     @Transactional
-    public Long withdraw(Long accountId, BigDecimal amount, String description) {
-        AccountEntity account = accountReader.readWithLock(accountId);
+    public Long withdraw(AccountWithdraw withdraw) {
+        AccountEntity account = accountReader.readWithLock(withdraw.getAccountId());
         LocalDate today = LocalDate.now();
-        DailyLimitUsageEntity dailyLimitUsage = dailyLimitUsageReader.findByAccountIdAndDateWithLock(accountId, today)
-                .orElseGet(() -> new DailyLimitUsageEntity(accountId, today));
+        DailyLimitUsageEntity dailyLimitUsage = dailyLimitUsageReader
+                .findByAccountIdAndDateWithLock(withdraw.getAccountId(), today)
+                .orElseGet(() -> new DailyLimitUsageEntity(withdraw.getAccountId(), today));
 
-        if (dailyLimitUsage.getTotalWithdrawAmount().add(amount).compareTo(DAILY_WITHDRAW_LIMIT) > 0) {
+        if (dailyLimitUsage.getTotalWithdrawAmount().add(withdraw.getAmount()).compareTo(DAILY_WITHDRAW_LIMIT) > 0) {
             throw new CoreException(ErrorType.EXCEED_DAILY_WITHDRAW_LIMIT);
         }
 
-        if (account.getBalance().compareTo(amount) < 0) {
+        if (account.getBalance().compareTo(withdraw.getAmount()) < 0) {
             throw new CoreException(ErrorType.INSUFFICIENT_BALANCE);
         }
 
-        account.withdraw(amount);
-        dailyLimitUsage.addWithdrawAmount(amount);
+        account.withdraw(withdraw.getAmount());
+        dailyLimitUsage.addWithdrawAmount(withdraw.getAmount());
 
         dailyLimitUsageWriter.save(dailyLimitUsage);
 
         TransactionEntity transaction = TransactionEntity.builder()
-                .accountId(accountId)
+                .accountId(withdraw.getAccountId())
                 .type(TransactionType.WITHDRAW)
                 .direction(TransactionDirection.OUT)
-                .amount(amount)
+                .amount(withdraw.getAmount())
                 .fee(BigDecimal.ZERO)
                 .balanceSnapshot(account.getBalance())
-                .description(description)
+                .description(withdraw.getDescription())
                 .build();
 
         transactionWriter.save(transaction);
